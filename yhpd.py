@@ -40,11 +40,15 @@ def initialize(context):
 def set_params():
     g.stocks=['601398.XSHG', '601939.XSHG']  # 设置银行股票 工行，建行
     g.flag_stat = False                      # 默认不开启统计
-    g.a = 1
-    g.b = 1
-    g.c = 1
-    g.d = 1
+    g.a = 0.7356
+    g.b = 0
+    g.c = 1.0261
+    g.d = 0
     g.fzbz = 1                               # 阀值标准
+    '''
+    工行预测涨幅=建行涨幅*a+b
+    建行预测=工行*c+d
+    '''
     
 
 #2
@@ -154,8 +158,8 @@ def handle_data(context,data):
     price1 = data[g.stocks[0]].close
     last_close0 = g.last_df[g.stocks[0]][0]
     last_close1 = g.last_df[g.stocks[1]][0]
-    zf0 = (price0-last_close0)/last_close0
-    zf1 = (price1-last_close1)/last_close1
+    zf0 = (price0-last_close0)/last_close0*100
+    zf1 = (price1-last_close1)/last_close1*100
     yczf0 = zf1*g.a+g.b
     yczf1 = zf0*g.c+g.d
     wc0 = zf0 - yczf0
