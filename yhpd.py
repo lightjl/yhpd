@@ -1,21 +1,3 @@
-'''
-这个是基于资金，关注的
-選股條件:
-1.今日成交量是10 日均量的3-5倍
-2.换手率在15%-20%之间
-3.涨幅在7%以上
-4.成交量问题，是89天内最大成交量
-
-你如果写回测的话，买点是5MA+1%,并且大于大阳线底部
-加上突破日线布林和周线布林，并且日线布林的价格大于周线布林的价格。就是上轨
-
-跌破放量阳线就踢出股票池。
-入股票池10天后出，除非条件再次达成
-10天换仓，不恋战
-最长持仓时间10个自然日
-跌破那个放量的线(跌破选股那天的前一天收盘价）就止损，还有5%止损
-'''
-
 import talib
 import numpy as np
 import pandas as pd
@@ -34,17 +16,20 @@ def initialize(context):
     # 加载统计模块
     if g.flag_stat:
         g.trade_stat = tradestat.trade_stat()
+    #设定光大证券作为基准
+    set_benchmark('399975.XSHE')
 
 #1 
 #设置策略参数
 def set_params():
-    g.stocks=['601398.XSHG', '601939.XSHG']  # 设置银行股票 工行，建行
+    #g.stocks=['601398.XSHG', '601939.XSHG']  # 设置银行股票 工行，建行
+    g.stocks=['000686.XSHE', '601788.XSHG']  # 东北证券，光大证券
     g.flag_stat = False                      # 默认不开启统计
-    g.a = 0.7356
-    g.b = 0
-    g.c = 1.0261
-    g.d = 0
-    g.fzbz = 1.5                             # 阀值标准
+    g.a = 0.6584
+    g.b = 1.7233
+    g.c = 1.46
+    g.d = -1.7115
+    g.fzbz = 4                               # 阀值标准
     '''
     工行预测涨幅=建行涨幅*a+b
     建行预测=工行*c+d
@@ -158,18 +143,27 @@ def handle_data(context,data):
     price1 = data[g.stocks[1]].close
     last_close0 = g.last_df[g.stocks[0]][0]
     last_close1 = g.last_df[g.stocks[1]][0]
-    zf0 = (price0-last_close0)/last_close0*100
-    zf1 = (price1-last_close1)/last_close1*100
+    #zf0 = (price0-last_close0)/last_close0*100
+    #zf1 = (price1-last_close1)/last_close1*100
+    zf0 = price0
+    zf1 = price1
     yczf0 = zf1*g.a+g.b
     yczf1 = zf0*g.c+g.d
-    wc0 = zf0 - yczf0
-    wc1 = zf1 - yczf1
+    wc0 = (zf0 - yczf0)/zf0*100
+    wc1 = (zf1 - yczf1)/zf1*100
     g.fz_before = g.fz
     g.fz = wc0 - wc1
-    if g.fz_before > 0 and g.fz < -1*g.fzbz:
+    
+    #log.debug('东北现价：%.2f, 东北预计:%0.2f, 东北误差:%.2f', zf0, yczf0, wc0)
+    #log.debug('光大现价：%.2f, 光大预计:%0.2f, 光大误差:%.2f', zf1, yczf1, wc1)
+    #log.debug('阀值：%.3f', g.fz)
+    
+    
+    
+    if g.fz_before > 0 and g.fz <= 0:
         # 惊天大逆转
         orders = get_open_orders()
-    elif g.fz_before < 0 and g.fz > g.fzbz:
+    elif g.fz_before < 0 and g.fz >= 0:
         orders = get_open_orders()
     if g.fz < -1*g.fzbz:                          # 跟阀值标准比
         #return g.stocks[0]
